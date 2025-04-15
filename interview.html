@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Interview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
+      <h2 id="interview-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
+
+      <div id="chat" class="space-y-4 mb-6 max-h-[400px] overflow-y-auto"></div>
+
+      <form id="responseForm" class="flex gap-4">
+        <input
+          type="text"
+          id="userInput"
+          class="flex-grow border border-gray-300 rounded px-3 py-2"
+          placeholder="Type your response..."
+          required
+        />
+        <button
+          type="submit"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const name = params.get("name") || "Candidate";
+      const role = params.get("role") || "this role";
+      const company = params.get("company") || "a company";
+
+      const questions = [];
+      const answers = [];
+      let currentQuestion = 0;
+
+      const chat = document.getElementById("chat");
+      const form = document.getElementById("responseForm");
+      const input = document.getElementById("userInput");
+      const title = document.getElementById("interview-title");
+
+      const managerName = ["Jordan", "Taylor", "Dana", "Chris", "Alex"][
+        Math.floor(Math.random() * 5)
+      ];
+      title.textContent = `Interview with ${managerName} – Hiring Manager at ${company}`;
+
+      addMessage(
+        `Hi, I'm ${managerName}, a hiring manager at ${company}. Thanks for taking the time today. Let’s get started.`,
+        "ai"
+      );
+
+      generateInterviewQuestion(role, company).then((question) => {
+        questions.push(question);
+        addMessage(question, "ai");
+      });
+
+      async function generateInterviewQuestion(role, company) {
+        const previousQuestions = questions.map((q, i) => `Q${i + 1}: ${q}`).join("\n");
+
+        const prompt = `
+You're a friendly, thoughtful hiring manager at ${company} interviewing a candidate for a ${role} role.
+
+Here are the questions you've already asked:
+${previousQuestions || "None yet."}
+
+Now, ask a new, unique question that hasn't been asked yet. Keep it conversational but professional.
+        `;
+
+        const response = await fetch("http://localhost:3000/api/interview", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: prompt.trim(),
+              },
+            ],
+            temperature: 0.7,
+          }),
+        });
+
+        const data = await response.json();
+        return data.reply;
+      }
+
+      async function generateFinalReport(answers, role, company) {
+        const joinedAnswers = answers.map((ans, i) => `Q${i + 1}: ${questions[i]}\nA${i + 1}: ${ans}`).join("\n\n");
+
+        const prompt = `
+You're a brutally honest, no-fluff hiring manager at ${company}. You just finished interviewing a candidate for the ${role} position.
+
+Please write a highly critical evaluation based on the following interview transcript. Your tone should be professional but blunt, like someone who has interviewed 500 people and has no patience for vague, low-effort answers.
+
+Include:
+- Major weaknesses in bullet form
+- Direct feedback about poor or lazy responses
+- Why the candidate is or is not hirable
+- A final score out of 10 (don’t be generous)
+
+Transcript:
+${joinedAnswers}
+        `;
+
+        const response = await fetch("http://localhost:3000/api/interview", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: prompt.trim(),
+              },
+            ],
+            temperature: 0.7,
+          }),
+        });
+
+        const data = await response.json();
+        return data.reply;
+      }
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const userText = input.value.trim();
+        if (!userText) return;
+
+        addMessage(userText, "user");
+        input.value = "";
+        answers.push(userText);
+        currentQuestion++;
+
+        if (currentQuestion < 5) {
+          generateInterviewQuestion(role, company).then((question) => {
+            questions.push(question);
+            addMessage(question, "ai");
+          });
+        } else {
+          addMessage(`Thanks for your responses. Let me review them and generate your personalized feedback report...`, "ai");
+          form.style.display = "none";
+          generateFinalReport(answers, role, company).then((report) => {
+            addMessage(report, "ai");
+          });
+        }
+      });
+
+      function addMessage(text, sender) {
+        const bubble = document.createElement("div");
+        bubble.className =
+          sender === "ai"
+            ? "bg-gray-200 text-gray-800 p-3 rounded-lg max-w-lg self-start"
+            : "bg-blue-600 text-white p-3 rounded-lg max-w-lg self-end";
+        bubble.textContent = text;
+        chat.appendChild(bubble);
+        chat.scrollTop = chat.scrollHeight;
+      }
+    </script>
+  </body>
+</html>
