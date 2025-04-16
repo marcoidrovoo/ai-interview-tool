@@ -71,8 +71,8 @@ ${previousQuestions || "None yet."}
 Now, ask a new, unique question that hasn't been asked yet. Keep it conversational but professional.
         `;
 
-        const response = await fetch("http://localhost:3000/api/interview", {
-          method: "POST",
+        const response = await fetch("https://ai-interview-tool.onrender.com/api/interview", {
+            method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
@@ -110,8 +110,8 @@ Transcript:
 ${joinedAnswers}
         `;
 
-        const response = await fetch("http://localhost:3000/api/interview", {
-          method: "POST",
+        const response = await fetch("https://ai-interview-tool.onrender.com/api/interview", {
+            method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
