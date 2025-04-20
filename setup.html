@@ -43,7 +43,29 @@
             class="w-full border border-gray-300 rounded px-3 py-2"
           />
         </div>
-        
+
+        <div>
+          <label class="block text-gray-700 font-medium mb-2">Select Plan</label>
+          <label class="inline-flex items-center mr-4">
+            <input type="radio" name="plan" value="free" checked class="form-radio text-blue-600" />
+            <span class="ml-2 text-sm text-gray-700">Free</span>
+          </label>
+          <label class="inline-flex items-center">
+            <input type="radio" name="plan" value="premium" class="form-radio text-blue-600" />
+            <span class="ml-2 text-sm text-gray-700">Premium</span>
+          </label>
+        </div>
+
+        <div id="tone-options" class="hidden">
+          <label class="block text-gray-700 font-medium mb-2 mt-4">Interview Tone (Premium Only)</label>
+          <select name="tone" class="w-full border border-gray-300 rounded px-3 py-2">
+            <option value="friendly">Friendly & Supportive</option>
+            <option value="blunt">Blunt & No-Nonsense</option>
+            <option value="formal">Formal & Professional</option>
+            <option value="casual">Chill & Conversational</option>
+          </select>
+        </div>        
+                
         <p class="text-gray-600 text-sm mt-4">
             The AI will act as a hiring manager from your selected company, ask you 5 interview questions, and generate a personalized report based on your answers.
           </p>
@@ -64,10 +86,24 @@
         const name = encodeURIComponent(this.name.value.trim());
         const role = encodeURIComponent(this.role.value.trim());
         const company = encodeURIComponent(this.company.value.trim());
+        const tone = encodeURIComponent(this.tone?.value || "");
+
 
         // Pass data to interview page via URL for now
-        window.location.href = `interview.html?name=${name}&role=${role}&company=${company}`;
+        const plan = document.querySelector('input[name="plan"]:checked').value;
+        window.location.href = `interview.html?name=${name}&role=${role}&company=${company}&plan=${plan}&tone=${tone}`;
       });
     </script>
+    <script>
+      const planRadios = document.querySelectorAll('input[name="plan"]');
+      const toneOptions = document.getElementById("tone-options");
+    
+      planRadios.forEach((radio) => {
+        radio.addEventListener("change", () => {
+          toneOptions.classList.toggle("hidden", radio.value !== "premium");
+        });
+      });
+    </script>
+    
   </body>
 </html>

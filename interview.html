@@ -6,17 +6,15 @@
     <title>AI Interview</title>
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
-  <body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-lg p-6 w-full max-w-2xl">
-      <h2 id="interview-title" class="text-xl font-semibold mb-4 text-gray-800"></h2>
-
-      <div id="chat" class="space-y-4 mb-6 max-h-[400px] overflow-y-auto"></div>
-
+  <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-3xl border border-gray-200">
+      <h2 id="interview-title" class="text-2xl font-bold mb-6 text-gray-900 text-center"></h2>
+      <div id="chat" class="space-y-4 mb-6 max-h-[400px] overflow-y-auto bg-gray-50 p-4 rounded-lg border border-gray-200"></div>
       <form id="responseForm" class="flex gap-4">
         <input
           type="text"
           id="userInput"
-          class="flex-grow border border-gray-300 rounded px-3 py-2"
+          class="flex-grow border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Type your response..."
           required
         />
@@ -34,6 +32,8 @@
       const name = params.get("name") || "Candidate";
       const role = params.get("role") || "this role";
       const company = params.get("company") || "a company";
+      const plan = params.get("plan") || "free";
+      const tone = params.get("tone") || "friendly";
 
       const questions = [];
       const answers = [];
@@ -44,15 +44,10 @@
       const input = document.getElementById("userInput");
       const title = document.getElementById("interview-title");
 
-      const managerName = ["Jordan", "Taylor", "Dana", "Chris", "Alex"][
-        Math.floor(Math.random() * 5)
-      ];
+      const managerName = ["Jordan", "Taylor", "Dana", "Chris", "Alex"][Math.floor(Math.random() * 5)];
       title.textContent = `Interview with ${managerName} – Hiring Manager at ${company}`;
 
-      addMessage(
-        `Hi, I'm ${managerName}, a hiring manager at ${company}. Thanks for taking the time today. Let’s get started.`,
-        "ai"
-      );
+      addMessage(`Hi, I'm ${managerName}, a hiring manager at ${company}. Thanks for taking the time today. Let’s get started.`, "ai");
 
       generateInterviewQuestion(role, company).then((question) => {
         questions.push(question);
@@ -60,31 +55,40 @@
       });
 
       async function generateInterviewQuestion(role, company) {
-        const previousQuestions = questions.map((q, i) => `Q${i + 1}: ${q}`).join("\n");
+        const conversationHistory = [];
+        for (let i = 0; i < questions.length; i++) {
+          conversationHistory.push({ role: "assistant", content: questions[i] });
+          conversationHistory.push({ role: "user", content: answers[i] });
+        }
 
-        const prompt = `
-You're a friendly, thoughtful hiring manager at ${company} interviewing a candidate for a ${role} role.
+        const systemPrompt = `
+You're a ${tone} hiring manager at ${company}, conducting a mock interview for a ${role} role.
 
-Here are the questions you've already asked:
-${previousQuestions || "None yet."}
+This is a live back-and-forth interview. Only play the role of the hiring manager.
 
-Now, ask a new, unique question that hasn't been asked yet. Keep it conversational but professional.
-        `;
+- Start with one realistic interview question.
+- Wait for the candidate to respond.
+- Then reply naturally to their answer and ask a thoughtful follow-up.
+- Respond as if you're in a real conversation — empathetic, blunt, or formal depending on tone.
+- Vary your tone slightly across responses to reflect human nuance.
+- Keep each message short (1-4 sentences).
+- Do NOT speak for the candidate or combine your reply with their response.
+
+Never include the candidate’s answer in your message.
+Always end with one new follow-up question.
+`;
+
 
         const response = await fetch("https://ai-interview-tool.onrender.com/api/interview", {
-            method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "gpt-3.5-turbo",
             messages: [
-              {
-                role: "system",
-                content: prompt.trim(),
-              },
+              { role: "system", content: systemPrompt.trim() },
+              ...conversationHistory
             ],
-            temperature: 0.7,
+            temperature: 0.75,
           }),
         });
 
@@ -98,7 +102,7 @@ Now, ask a new, unique question that hasn't been asked yet. Keep it conversation
         const prompt = `
 You're a brutally honest, no-fluff hiring manager at ${company}. You just finished interviewing a candidate for the ${role} position.
 
-Please write a highly critical evaluation based on the following interview transcript. Your tone should be professional but blunt, like someone who has interviewed 500 people and has no patience for vague, low-effort answers.
+Please write a highly critical evaluation based on the following interview transcript. Your tone should be professional but blunt.
 
 Include:
 - Major weaknesses in bullet form
@@ -107,22 +111,14 @@ Include:
 - A final score out of 10 (don’t be generous)
 
 Transcript:
-${joinedAnswers}
-        `;
+${joinedAnswers}`;
 
         const response = await fetch("https://ai-interview-tool.onrender.com/api/interview", {
-            method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             model: "gpt-3.5-turbo",
-            messages: [
-              {
-                role: "system",
-                content: prompt.trim(),
-              },
-            ],
+            messages: [{ role: "system", content: prompt.trim() }],
             temperature: 0.7,
           }),
         });
@@ -131,7 +127,7 @@ ${joinedAnswers}
         return data.reply;
       }
 
-      form.addEventListener("submit", (e) => {
+      form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const userText = input.value.trim();
         if (!userText) return;
@@ -139,28 +135,43 @@ ${joinedAnswers}
         addMessage(userText, "user");
         input.value = "";
         answers.push(userText);
-        currentQuestion++;
 
-        if (currentQuestion < 5) {
-          generateInterviewQuestion(role, company).then((question) => {
-            questions.push(question);
-            addMessage(question, "ai");
-          });
+        currentQuestion++;
+        const maxQuestions = plan === "premium" ? 15 : 5;
+
+        if (currentQuestion < maxQuestions) {
+          const followUp = await generateInterviewQuestion(role, company);
+          questions.push(followUp);
+          addMessage(followUp, "ai");
         } else {
-          addMessage(`Thanks for your responses. Let me review them and generate your personalized feedback report...`, "ai");
+          addMessage("Thanks for your responses. Let me review them and generate your personalized feedback report...", "ai");
           form.style.display = "none";
-          generateFinalReport(answers, role, company).then((report) => {
-            addMessage(report, "ai");
-          });
+          const report = await generateFinalReport(answers, role, company);
+          formatFinalReport(report);
         }
       });
 
+      function formatFinalReport(text) {
+        const sections = text.split(/\n(?=\*\*|Final Score:)/g);
+        sections.forEach((section) => {
+          const card = document.createElement("div");
+          card.className = "bg-gray-50 p-4 rounded-lg shadow-sm border mb-4 text-sm text-gray-800 whitespace-pre-wrap";
+          card.textContent = section.trim();
+          chat.appendChild(card);
+        });
+
+        const upgradeNote = document.createElement("p");
+        upgradeNote.className = "text-center text-sm text-gray-500 mt-6";
+        upgradeNote.innerHTML = `Want deeper feedback, smart follow-ups, and downloadable reports?<br><a href="pricing.html" class="text-blue-600 underline hover:text-blue-800">Upgrade to Premium</a>`;
+        chat.appendChild(upgradeNote);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
       function addMessage(text, sender) {
         const bubble = document.createElement("div");
-        bubble.className =
-          sender === "ai"
-            ? "bg-gray-200 text-gray-800 p-3 rounded-lg max-w-lg self-start"
-            : "bg-blue-600 text-white p-3 rounded-lg max-w-lg self-end";
+        bubble.className = sender === "ai"
+          ? "bg-gray-200 text-gray-800 p-3 rounded-lg max-w-lg self-start"
+          : "bg-blue-600 text-white p-3 rounded-lg max-w-lg self-end";
         bubble.textContent = text;
         chat.appendChild(bubble);
         chat.scrollTop = chat.scrollHeight;
