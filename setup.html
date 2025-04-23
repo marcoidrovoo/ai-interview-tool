@@ -119,35 +119,40 @@ window.location.href = `interview.html?name=${name}&role=${role}&company=${compa
 
   const resumeDropdown = document.getElementById("resume-select");
 
-  async function loadResumeOptions() {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+  // Add a loading option by default
+  const loadingOption = document.createElement("option");
+  loadingOption.textContent = "Loading...";
+  resumeDropdown.appendChild(loadingOption);
 
-    if (userError || !user) {
-      resumeDropdown.innerHTML = `<option value="">Please log in to select a resume</option>`;
-      return;
-    }
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
 
+  if (userError || !user) {
+    resumeDropdown.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.textContent = "Log in to select a resume";
+    resumeDropdown.appendChild(opt);
+  } else {
     const { data, error } = await supabase
       .from("users")
       .select("resume_text")
       .eq("id", user.id)
       .single();
 
-    if (error || !data.resume_text) {
-      resumeDropdown.innerHTML = `<option value="">No resume uploaded yet</option>`;
-      return;
-    }
+    resumeDropdown.innerHTML = ""; // Clear "Loading..." text
 
-    resumeDropdown.innerHTML = `
-      <option value="${data.resume_text}">Uploaded Resume</option>
-    `;
-  }
+    if (error || !data?.resume_text) {
+      const opt = document.createElement("option");
+      opt.textContent = "No resume uploaded";
+      resumeDropdown.appendChild(opt);
+    } else {
+      const opt = document.createElement("option");
+      opt.value = "uploaded";
+      opt.textContent = "Uploaded Resume";
+      resumeDropdown.appendChild
 
-  loadResumeOptions();
-</script>
     
   </body>
 </html>
