@@ -118,6 +118,8 @@ window.location.href = `interview.html?name=${name}&role=${role}&company=${compa
 
 <script type="module">
   import { supabase } from './supabaseClient.js';
+  const resumeDropdown = document.getElementById("resume-dropdown");
+
 
   // Default loading message
   const loadingOption = document.createElement("option");
