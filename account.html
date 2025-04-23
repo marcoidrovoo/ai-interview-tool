@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>My Account – MockedUp</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script type="module" src="supabaseClient.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 min-h-screen text-gray-800 font-sans">
+    <div class="max-w-2xl mx-auto mt-12 bg-white shadow-md rounded-xl p-6">
+      <h1 class="text-3xl font-bold mb-6 text-center text-blue-800">My Account</h1>
+
+      <!-- User Info -->
+      <div id="user-info" class="mb-6">
+        <p><strong>Email:</strong> <span id="user-email">Loading...</span></p>
+        <p><strong>Account Created:</strong> <span id="user-created">Loading...</span></p>
+      </div>
+
+      <!-- Resume Display -->
+      <div class="mb-6">
+        <h2 class="text-xl font-semibold mb-2">Uploaded Resume</h2>
+        <p id="resume-preview" class="text-gray-700 italic mb-2">Loading resume...</p>
+        <button id="toggle-resume" class="text-blue-600 underline text-sm hidden">Show Full Resume</button>
+        <pre id="resume-full" class="bg-gray-50 p-3 border rounded mt-2 whitespace-pre-wrap hidden"></pre>
+      </div>
+
+      <!-- Resume Upload -->
+      <div>
+        <h2 class="text-xl font-semibold mb-2">Upload New Resume</h2>
+        <input type="file" id="resume-upload" accept=".pdf,.docx,.txt" class="w-full border p-2 rounded mb-3" />
+        <button id="save-resume" class="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">Save Resume</button>
+      </div>
+    </div>
+
+    <!-- PDF + DOCX support -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+    <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+
+    <script type="module">
+      import { supabase } from './supabaseClient.js';
+
+      const emailEl = document.getElementById("user-email");
+      const createdEl = document.getElementById("user-created");
+      const previewEl = document.getElementById("resume-preview");
+      const fullEl = document.getElementById("resume-full");
+      const toggleBtn = document.getElementById("toggle-resume");
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("You must be logged in to view this page.");
+        window.location.href = "index.html";
+      }
+
+      emailEl.textContent = user.email;
+      createdEl.textContent = new Date(user.created_at).toLocaleDateString();
+
+      // Fetch resume from users table
+      const { data, error } = await supabase
+        .from("users")
+        .select("resume_text")
+        .eq("id", user.id)
+        .single();
+
+      if (data?.resume_text) {
+        const lines = data.resume_text.trim().split("\n");
+        previewEl.textContent = lines.slice(0, 3).join("\n") + "\n...";
+        fullEl.textContent = data.resume_text;
+        toggleBtn.classList.remove("hidden");
+
+        toggleBtn.addEventListener("click", () => {
+          fullEl.classList.toggle("hidden");
+          toggleBtn.textContent = fullEl.classList.contains("hidden") ? "Show Full Resume" : "Hide Resume";
+        });
+      } else {
+        previewEl.textContent = "No resume uploaded yet.";
+      }
+
+      // Upload logic
+      document.getElementById("save-resume").addEventListener("click", async () => {
+        const file = document.getElementById("resume-upload").files[0];
+        const button = document.getElementById("save-resume");
+
+        if (!file) return alert("Please select a file.");
+        button.disabled = true;
+        button.textContent = "Saving...";
+
+        let textContent = "";
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        try {
+          if (ext === "pdf") {
+            const buffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const content = await page.getTextContent();
+              textContent += content.items.map(item => item.str).join(" ") + "\n";
+            }
+          } else if (ext === "docx") {
+            const result = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+            textContent = result.value;
+          } else if (ext === "txt") {
+            textContent = await file.text();
+          } else {
+            return alert("Unsupported file type.");
+          }
+
+          const { error } = await supabase
+            .from("users")
+            .update({ resume_text: textContent })
+            .eq("id", user.id);
+
+          if (error) {
+            alert("Error saving resume: " + error.message);
+          } else {
+            alert("✅ Resume saved successfully!");
+            location.reload();
+          }
+        } catch (err) {
+          console.error(err);
+          alert("An error occurred.");
+        }
+
+        button.disabled = false;
+        button.textContent = "Save Resume";
+      });
+    </script>
+  </body>
+</html>
