@@ -91,6 +91,8 @@
       document.getElementById("interviewForm").addEventListener("submit", function (e) {
         e.preventDefault();
 
+        const resumeDropdown = document.getElementById("resume-dropdown");
+
         const name = encodeURIComponent(this.name.value.trim());
         const role = encodeURIComponent(this.role.value.trim());
         const company = encodeURIComponent(this.company.value.trim());
@@ -116,8 +118,6 @@ window.location.href = `interview.html?name=${name}&role=${role}&company=${compa
 
 <script type="module">
   import { supabase } from './supabaseClient.js';
-
-  const resumeDropdown = document.getElementById("resume-dropdown");
 
   // Default loading message
   const loadingOption = document.createElement("option");
