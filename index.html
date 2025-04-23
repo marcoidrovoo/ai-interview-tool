@@ -5,11 +5,17 @@
     <meta charset="UTF-8" />
     <title>MockedUp InterviewS </title>
   
-    <!-- Supabase scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script type="module" src="supabaseClient.js"></script>
-  
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase + Tailwind -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- PDF and DOCX Support -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+<script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+
+<!-- Your JS logic -->
+<script type="module" src="supabaseClient.js"></script>
+
   </head>
   
   <body class="bg-gradient-to-b from-blue-50 to-blue-100 min-h-screen text-gray-800 font-sans">
@@ -210,50 +216,72 @@ document.getElementById("save-resume")?.addEventListener("click", async () => {
   const fileInput = document.getElementById("resume-upload");
   const file = fileInput.files[0];
   const saveButton = document.getElementById("save-resume");
+
   saveButton.disabled = true;
   saveButton.textContent = "Saving...";
 
-
   if (!file) {
     alert("Please select a file.");
-    return;
-  }
-
-  const reader = new FileReader();
-
-  reader.onload = async function (e) {
-  const textContent = e.target.result;
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    alert("User not logged in.");
     saveButton.disabled = false;
     saveButton.textContent = "Save Resume";
     return;
   }
 
-  const { error } = await supabase
-    .from("users")
-    .update({ resume_text: textContent })
-    .eq("id", user.id);
+  let textContent = "";
+  const fileType = file.name.split('.').pop().toLowerCase();
 
-  if (error) {
-    alert("❌ Failed to save resume: " + error.message);
-  } else {
-    alert("✅ Resume saved successfully!");
+  try {
+    if (fileType === "pdf") {
+      const pdfData = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(" ");
+        textContent += pageText + "\n";
+      }
+    } else if (fileType === "docx") {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      textContent = result.value;
+    } else if (fileType === "txt") {
+      textContent = await file.text();
+    } else {
+      alert("Unsupported file type. Please upload a .pdf, .docx, or .txt file.");
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Resume";
+      return;
+    }
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      alert("User not logged in.");
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Resume";
+      return;
+    }
+
+    const { error } = await supabase
+      .from("users")
+      .update({ resume_text: textContent })
+      .eq("id", user.id);
+
+    if (error) {
+      alert("❌ Failed to save resume: " + error.message);
+    } else {
+      alert("✅ Resume saved successfully!");
+    }
+  } catch (err) {
+    console.error(err);
+    alert("An error occurred while processing the file.");
   }
 
-  // ✅ Always re-enable the button at the end
   saveButton.disabled = false;
   saveButton.textContent = "Save Resume";
-};
-
-
-  reader.readAsText(file); // extracts plain text
 });
 
 
