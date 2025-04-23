@@ -99,7 +99,7 @@
 
         // Pass data to interview page via URL for now
         const plan = document.querySelector('input[name="plan"]:checked').value;
-        const resume = encodeURIComponent(resumeDropdown.value || "");
+const resume = encodeURIComponent(resumeDropdown.value || "");
 window.location.href = `interview.html?name=${name}&role=${role}&company=${company}&plan=${plan}&tone=${tone}&resume=${resume}`;
       });
     </script>
@@ -117,7 +117,7 @@ window.location.href = `interview.html?name=${name}&role=${role}&company=${compa
 <script type="module">
   import { supabase } from './supabaseClient.js';
 
-  const resumeDropdown = document.getElementById("resume-dropdown");
+  const resumeDropdown = document.getElementById("resume-select");
 
   async function loadResumeOptions() {
     const {
