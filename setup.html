@@ -12,6 +12,14 @@
         Set Up Your Interview
       </h2>
 
+      <!-- Resume Selector -->
+<div id="resume-selector" class="mb-6">
+  <label for="resume-dropdown" class="block text-gray-700 font-medium mb-2">Select Resume</label>
+  <select id="resume-dropdown" class="w-full border border-gray-300 rounded px-3 py-2">
+    <option value="">Loading...</option>
+  </select>
+</div>
+
       <form id="interviewForm" class="space-y-4">
         <div>
           <label class="block text-gray-700 mb-1">Your Name (optional)</label>
@@ -91,7 +99,8 @@
 
         // Pass data to interview page via URL for now
         const plan = document.querySelector('input[name="plan"]:checked').value;
-        window.location.href = `interview.html?name=${name}&role=${role}&company=${company}&plan=${plan}&tone=${tone}`;
+        const resume = encodeURIComponent(resumeDropdown.value || "");
+window.location.href = `interview.html?name=${name}&role=${role}&company=${company}&plan=${plan}&tone=${tone}&resume=${resume}`;
       });
     </script>
     <script>
@@ -104,6 +113,41 @@
         });
       });
     </script>
+
+<script type="module">
+  import { supabase } from './supabaseClient.js';
+
+  const resumeDropdown = document.getElementById("resume-dropdown");
+
+  async function loadResumeOptions() {
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      resumeDropdown.innerHTML = `<option value="">Please log in to select a resume</option>`;
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("users")
+      .select("resume_text")
+      .eq("id", user.id)
+      .single();
+
+    if (error || !data.resume_text) {
+      resumeDropdown.innerHTML = `<option value="">No resume uploaded yet</option>`;
+      return;
+    }
+
+    resumeDropdown.innerHTML = `
+      <option value="${data.resume_text}">Uploaded Resume</option>
+    `;
+  }
+
+  loadResumeOptions();
+</script>
     
   </body>
 </html>
