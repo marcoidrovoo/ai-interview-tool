@@ -119,7 +119,7 @@ window.location.href = `interview.html?name=${name}&role=${role}&company=${compa
 
   const resumeDropdown = document.getElementById("resume-select");
 
-  // Add a loading option by default
+  // Default loading message
   const loadingOption = document.createElement("option");
   loadingOption.textContent = "Loading...";
   resumeDropdown.appendChild(loadingOption);
@@ -141,7 +141,7 @@ window.location.href = `interview.html?name=${name}&role=${role}&company=${compa
       .eq("id", user.id)
       .single();
 
-    resumeDropdown.innerHTML = ""; // Clear "Loading..." text
+    resumeDropdown.innerHTML = "";
 
     if (error || !data?.resume_text) {
       const opt = document.createElement("option");
@@ -151,7 +151,10 @@ window.location.href = `interview.html?name=${name}&role=${role}&company=${compa
       const opt = document.createElement("option");
       opt.value = "uploaded";
       opt.textContent = "Uploaded Resume";
-      resumeDropdown.appendChild
+      resumeDropdown.appendChild(opt);
+    }
+  }
+</script>
 
     
   </body>
