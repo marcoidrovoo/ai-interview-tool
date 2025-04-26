@@ -255,9 +255,11 @@ ${joinedAnswers}`;
         .eq("id", user.id)
         .single();
 
-      if (fetchError) {
-        alert("Error loading your resume.");
-      }
+        if (fetchError) {
+  alert("Error loading your resume.");
+  return; // <-- You NEED this
+}
+
 
       if (!userData?.is_premium) {
         alert("This feature is for premium users only.");
