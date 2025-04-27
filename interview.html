@@ -176,34 +176,27 @@ function formatFinalReport(text) {
 <script type="module">
 import { supabase } from './supabaseClient.js';
 
-const urlParams = new URLSearchParams(window.location.search);
-const resumeParam = urlParams.get("resume");
-window.resumeText = "";
+/* --- BEGIN résumé fetch block (new) --- */
 
-if (resumeParam === "uploaded") {
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+window.resumeText = "";               // default = empty
 
-  if (user && !userError) {
-    const { data: userData, error: fetchError } = await supabase
-      .from("users")
-      .select("resume_text, is_premium")
-      .eq("id", user.id)
-      .single();
+// 1) Check who’s logged in
+const { data: { user } } = await supabase.auth.getUser();
 
-    if (fetchError) {
-      alert("Error loading your resume.");
-      return;
-    }
+if (user) {
+  // 2) Pull the résumé text from Supabase
+  const { data } = await supabase
+    .from("users")
+    .select("resume_text")
+    .eq("id", user.id)
+    .single();
 
-    if (!userData?.is_premium) {
-      alert("This feature is for premium users only.");
-      return;
-    }
-
-    window.resumeText = userData.resume_text || "";
-    console.log("✅ Resume loaded");
-  }
+  // 3) Store it in window.resumeText (empty string if none)
+  window.resumeText = data?.resume_text || "";
+  console.log("✅ Résumé loaded, length:", window.resumeText.length);
 }
+/* --- END résumé fetch block (new) --- */
+
 </script>
 </body>
 </html>
