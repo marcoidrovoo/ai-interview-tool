@@ -47,6 +47,8 @@ const managerName = ["Jordan", "Taylor", "Dana", "Chris", "Alex"][Math.floor(Mat
 title.textContent = `Interview with ${managerName} – Hiring Manager at ${company}`;
 
 addMessage(`Hi, I'm ${managerName}, a hiring manager at ${company}. Thanks for taking the time today. Let’s get started.`, "ai");
+questions.push(`Hi, I'm ${managerName}, a hiring manager at ${company}. Thanks for taking the time today. Let’s get started.`);
+
 
 async function generateInterviewQuestion(role, company) {
   const conversationHistory = [];
